@@ -1,14 +1,15 @@
 const express = require("express");
-const { listMaterials } = require("./materials.controller");
-const { authenticate } = require("../../middleware/auth");
 
-function createMaterialsRouter(env) {
+const { authenticate } = require("../../middleware/auth");
+const { getSuggestions } = require("./match.controller");
+
+function createMatchesRouter(env) {
   const router = express.Router();
   const requireAuth = authenticate({ jwtSecret: env.JWT_SECRET });
 
-  router.get("/", requireAuth, listMaterials);
+  router.get("/suggestions", requireAuth, getSuggestions);
 
   return router;
 }
 
-module.exports = { createMaterialsRouter };
+module.exports = { createMatchesRouter };

@@ -1,7 +1,10 @@
 function notFound(req, res) {
+  const message = `Route not found: ${req.method} ${req.originalUrl}`;
   res.status(404).json({
     success: false,
-    error: { message: `Route not found: ${req.method} ${req.originalUrl}` },
+    message,
+    data: null,
+    error: { message, code: "NOT_FOUND" },
   });
 }
 

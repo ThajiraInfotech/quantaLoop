@@ -20,6 +20,8 @@ function errorHandler(err, req, res, next) {
 
   res.status(statusCode).json({
     success: false,
+    message,
+    data: null,
     error: errorBody,
   });
 }
