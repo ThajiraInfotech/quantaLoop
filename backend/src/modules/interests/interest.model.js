@@ -1,6 +1,18 @@
 const mongoose = require("mongoose");
 
-const INTEREST_STATUS = ["pending", "accepted", "rejected"];
+const {
+  mapMaterialStatusForPublic,
+} = require("../materials/material-status.helper");
+
+const INTEREST_STATUS = [
+  "pending",
+  "accepted",
+  "rejected",
+  "discussion",
+  "pickup_scheduled",
+  "completed",
+  "closed",
+];
 
 const interestSchema = new mongoose.Schema(
   {
@@ -29,6 +41,11 @@ const interestSchema = new mongoose.Schema(
       enum: INTEREST_STATUS,
       default: "pending",
     },
+    conversation: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Conversation",
+      default: null,
+    },
   },
   { timestamps: true }
 );
@@ -52,6 +69,7 @@ function toPublicInterest(doc) {
   const material = o.material;
   const buyer = o.buyer;
   const provider = o.provider;
+  const conv = o.conversation;
 
   return {
     id: o._id.toString(),
@@ -61,6 +79,10 @@ function toPublicInterest(doc) {
       material && typeof material === "object" && "title" in material
         ? material.title
         : "",
+    materialStatus:
+      material && typeof material === "object" && "status" in material
+        ? mapMaterialStatusForPublic(material.status)
+        : undefined,
     buyer: serializeUserBrief(
       buyer && typeof buyer === "object" && "_id" in buyer ? buyer : null
     ),
@@ -69,6 +91,8 @@ function toPublicInterest(doc) {
     message: o.message,
     pickupTimeline: o.pickupTimeline,
     status: o.status,
+    conversationId:
+      conv?._id?.toString?.() ?? conv?.toString?.() ?? (conv ? String(conv) : null),
     createdAt: o.createdAt,
     updatedAt: o.updatedAt,
   };

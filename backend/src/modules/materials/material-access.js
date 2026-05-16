@@ -1,5 +1,7 @@
 const mongoose = require("mongoose");
 
+const { isListedForNetworkBrowse } = require("./material-status.helper");
+
 /**
  * Whether a verified buyer may view / act on a material (aligned with material.controller).
  */
@@ -14,14 +16,11 @@ function buyerCanAccessMaterial(material, userId) {
   const isInterested = (material.interestedBuyers ?? []).some((bid) =>
     bid.equals(buyerId)
   );
+  const listed = isListedForNetworkBrowse(material.status);
   const canViewNetwork =
-    material.status === "active" &&
-    material.visibility === "network" &&
-    providerId !== userId;
+    listed && material.visibility === "network" && providerId !== userId;
   const canViewRestricted =
-    material.status === "active" &&
-    material.visibility === "restricted" &&
-    isInterested;
+    listed && material.visibility === "restricted" && isInterested;
 
   return canViewNetwork || canViewRestricted;
 }

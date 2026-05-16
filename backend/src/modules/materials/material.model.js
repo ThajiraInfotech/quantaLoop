@@ -1,7 +1,12 @@
 const mongoose = require("mongoose");
 
+const {
+  MATERIAL_STATUS_VALUES,
+  mapMaterialStatusForPublic,
+} = require("./material-status.helper");
+
 const AVAILABILITY = ["one_time", "daily", "weekly", "monthly"];
-const STATUS = ["active", "inactive"];
+const STATUS = MATERIAL_STATUS_VALUES;
 const VISIBILITY = ["network", "restricted"];
 
 const materialSchema = new mongoose.Schema(
@@ -20,7 +25,7 @@ const materialSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: STATUS,
-      default: "active",
+      default: "available",
     },
     provider: {
       type: mongoose.Schema.Types.ObjectId,
@@ -86,7 +91,7 @@ function toPublicMaterial(doc) {
     unit: m.unit,
     location: m.location,
     availabilityFrequency: m.availabilityFrequency,
-    status: m.status,
+    status: mapMaterialStatusForPublic(m.status),
     provider,
     industryType: m.industryType,
     pickupAvailable: m.pickupAvailable,

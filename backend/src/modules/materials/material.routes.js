@@ -4,6 +4,7 @@ const { authenticate, authorize } = require("../../middleware/auth");
 const {
   listMaterials,
   getMaterialById,
+  getMaterialTimeline,
   createMaterial,
   updateMaterial,
 } = require("./material.controller");
@@ -15,6 +16,7 @@ function createMaterialsRouter(env) {
 
   router.post("/", requireAuth, canPublishMaterial, createMaterial);
   router.get("/", requireAuth, listMaterials);
+  router.get("/:id/timeline", requireAuth, getMaterialTimeline);
   router.get("/:id", requireAuth, getMaterialById);
   router.patch("/:id", requireAuth, canPublishMaterial, updateMaterial);
 

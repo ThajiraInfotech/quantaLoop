@@ -2,7 +2,14 @@ const { z } = require("zod");
 const mongoose = require("mongoose");
 
 const availabilityEnum = z.enum(["one_time", "daily", "weekly", "monthly"]);
-const statusEnum = z.enum(["active", "inactive"]);
+const statusEnum = z.enum([
+  "available",
+  "in_discussion",
+  "fulfilled",
+  "archived",
+  "active",
+  "inactive",
+]);
 const visibilityEnum = z.enum(["network", "restricted"]);
 
 const objectIdString = z
@@ -21,7 +28,7 @@ const createMaterialSchema = z.object({
   estimatedValueRange: z.string().max(200).optional().default(""),
   industryType: z.string().max(120).optional().default(""),
   visibility: visibilityEnum.optional().default("network"),
-  status: statusEnum.optional().default("active"),
+  status: statusEnum.optional().default("available"),
   providerUserId: objectIdString.optional(),
 });
 

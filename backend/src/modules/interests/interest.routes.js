@@ -6,6 +6,7 @@ const {
   listMyInterests,
   getMyInterestForMaterial,
   updateInterestStatus,
+  patchInterestWorkflow,
 } = require("./interest.controller");
 
 function createInterestsRouter(env) {
@@ -20,6 +21,12 @@ function createInterestsRouter(env) {
     requireAuth,
     authorize("material_provider", "admin"),
     updateInterestStatus
+  );
+  router.patch(
+    "/:id/workflow",
+    requireAuth,
+    authorize("material_provider", "admin"),
+    patchInterestWorkflow
   );
 
   return router;

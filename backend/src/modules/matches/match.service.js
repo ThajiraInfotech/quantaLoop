@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const { User } = require("../users/user.model");
 const { Material } = require("../materials/material.model");
 const { createNotification } = require("../notifications/notification.service");
+const { isListedForNetworkBrowse } = require("../materials/material-status.helper");
 
 function norm(s) {
   return (s ?? "").toString().trim().toLowerCase();
@@ -70,7 +71,7 @@ const NOTIFY_SCORE_THRESHOLD = 38;
 const MAX_MATCH_NOTIFICATIONS = 24;
 
 async function notifyBuyersOfNewMaterial(materialDoc) {
-  if (!materialDoc || materialDoc.status !== "active") return;
+  if (!materialDoc || !isListedForNetworkBrowse(materialDoc.status)) return;
   if (materialDoc.visibility !== "network") return;
 
   const buyers = await User.find({ role: "verified_buyer" })
@@ -110,7 +111,7 @@ async function getBuyerMaterialSuggestions(userId) {
   }
 
   const materials = await Material.find({
-    status: "active",
+    status: { $in: ["available", "active", "in_discussion"] },
     visibility: "network",
     provider: { $ne: uid },
   })
@@ -154,7 +155,10 @@ async function getProviderMatchSignals(userId) {
     return { headlines: [], buyers: [] };
   }
 
-  const materials = await Material.find({ provider: uid, status: "active" })
+  const materials = await Material.find({
+    provider: uid,
+    status: { $in: ["available", "active", "in_discussion"] },
+  })
     .select("materialType industryType location title")
     .lean();
 

@@ -6,6 +6,8 @@ const { asyncHandler } = require("../../utils/asyncHandler");
 const { notifyBuyersOfNewMaterial } = require("../matches/match.service");
 const { User } = require("../users/user.model");
 const { Material, toPublicMaterial } = require("./material.model");
+const { isListedForNetworkBrowse } = require("./material-status.helper");
+const { listForMaterial } = require("../timeline/timeline.service");
 const { safeParseCreate, safeParseUpdate } = require("./material.validation");
 
 function validationError(next, flatten) {
@@ -32,7 +34,7 @@ const listMaterials = asyncHandler(async (req, res, next) => {
     query = query.where({ provider: userId });
   } else if (role === "verified_buyer") {
     query = query.where({
-      status: "active",
+      status: { $in: ["available", "active", "in_discussion"] },
       visibility: "network",
       provider: { $ne: new mongoose.Types.ObjectId(userId) },
     });
@@ -78,12 +80,13 @@ const getMaterialById = asyncHandler(async (req, res, next) => {
     const isInterested = (doc.interestedBuyers ?? []).some((bid) =>
       bid.equals(buyerId)
     );
+    const listed = isListedForNetworkBrowse(doc.status);
     const canViewNetwork =
-      doc.status === "active" &&
+      listed &&
       doc.visibility === "network" &&
       providerId !== userId;
     const canViewRestricted =
-      doc.status === "active" &&
+      listed &&
       doc.visibility === "restricted" &&
       isInterested;
 
@@ -94,6 +97,56 @@ const getMaterialById = asyncHandler(async (req, res, next) => {
   }
 
   sendSuccess(res, { material: toPublicMaterial(doc) }, "Material retrieved");
+});
+
+const getMaterialTimeline = asyncHandler(async (req, res, next) => {
+  const { id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    next(new AppError("Invalid material id", 400, "INVALID_ID"));
+    return;
+  }
+
+  const doc = await Material.findById(id).populate(
+    "provider",
+    "companyName name email industryType location"
+  );
+
+  if (!doc) {
+    next(new AppError("Material not found", 404, "NOT_FOUND"));
+    return;
+  }
+
+  const { role, id: userId } = req.user;
+  const providerId = doc.provider?._id?.toString?.() ?? doc.provider?.toString();
+
+  if (role === "material_provider" && providerId !== userId) {
+    next(new AppError("Forbidden", 403, "FORBIDDEN"));
+    return;
+  }
+
+  if (role === "verified_buyer") {
+    const buyerId = new mongoose.Types.ObjectId(userId);
+    const isInterested = (doc.interestedBuyers ?? []).some((bid) =>
+      bid.equals(buyerId)
+    );
+    const listed = isListedForNetworkBrowse(doc.status);
+    const canViewNetwork =
+      listed &&
+      doc.visibility === "network" &&
+      providerId !== userId;
+    const canViewRestricted =
+      listed &&
+      doc.visibility === "restricted" &&
+      isInterested;
+
+    if (!canViewNetwork && !canViewRestricted) {
+      next(new AppError("Forbidden", 403, "FORBIDDEN"));
+      return;
+    }
+  }
+
+  const items = await listForMaterial(id, 50);
+  sendSuccess(res, { items }, "Timeline retrieved");
 });
 
 const createMaterial = asyncHandler(async (req, res, next) => {
@@ -190,6 +243,7 @@ const updateMaterial = asyncHandler(async (req, res, next) => {
 module.exports = {
   listMaterials,
   getMaterialById,
+  getMaterialTimeline,
   createMaterial,
   updateMaterial,
 };
